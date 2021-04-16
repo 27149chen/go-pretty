@@ -8,10 +8,11 @@ import (
 	"strings"
 )
 
-const (
-	start = "=== Code Reserved for enterprise only. START ==="
-	end = "=== Code Reserved for enterprise only. END ==="
-	f = "=== File Reserved for enterprise only. ==="
+var (
+	ReservedTag = "Reserved for enterprise only"
+	startTag = fmt.Sprintf("=== Code %s. START ===", ReservedTag)
+	endTag = fmt.Sprintf("=== Code %s. END ===", ReservedTag)
+	fileTag = fmt.Sprintf("=== File %s. ===", ReservedTag)
 )
 
 var excludedPaths = []string{"pkg/delete/"}
@@ -42,15 +43,15 @@ func cleanCode(name string) error {
 	var skipped bool
 	for scanner.Scan() {
 		text := scanner.Text()
-		if strings.Contains(text, f) {
+		if strings.Contains(text, fileTag) {
 			_ = os.Remove(name+"_tmp")
 			return os.Remove(name)
 
 		}
 
-		if strings.Contains(text, start) {
+		if strings.Contains(text, startTag) {
 			skipped = true
-		} else if strings.Contains(text, end) {
+		} else if strings.Contains(text, endTag) {
 			skipped = false
 			continue
 		}
