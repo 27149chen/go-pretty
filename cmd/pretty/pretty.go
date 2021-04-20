@@ -1,4 +1,4 @@
-package app
+package pretty
 
 import (
 	"bufio"
