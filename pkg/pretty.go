@@ -1,4 +1,4 @@
-package pretty
+package pkg
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const prettyFile = ".prettyfile"
+const PrettyFile = ".prettyfile"
 
 var (
 	ReservedTag = "Reserved for enterprise only"
@@ -19,7 +19,7 @@ var (
 
 var excludedPaths []string
 
-func populateExcludedPaths(prettyIgnore string) error {
+func PopulateExcludedPaths(prettyIgnore string) error {
 	file, err := os.Open(prettyIgnore)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func cleanCode(name string) error {
 	return os.Rename(name+"_tmp", name)
 }
 
-func prettify(path string) error {
+func Prettify(path string) error {
 	return filepath.Walk(path,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {

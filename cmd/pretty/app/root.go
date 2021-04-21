@@ -1,10 +1,12 @@
-package pretty
+package app
 
 import (
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+
+	"github.com/27149chen/go-pretty/pkg"
 )
 
 var pretty string
@@ -28,12 +30,12 @@ func Execute() {
 }
 
 func run(root string) error {
-	err := populateExcludedPaths(pretty)
+	err := pkg.PopulateExcludedPaths(pretty)
 	if err != nil {
 		return err
 	}
 
-	err = prettify(root)
+	err = pkg.Prettify(root)
 	if err != nil {
 		return err
 	}
@@ -50,7 +52,7 @@ func run(root string) error {
 func init() {
 	// cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&pretty, "file", "f", prettyFile, "Name of the pretty file.")
+	rootCmd.PersistentFlags().StringVarP(&pretty, "file", "f", pkg.PrettyFile, "Name of the pretty file.")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
