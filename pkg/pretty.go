@@ -31,6 +31,9 @@ func PopulateExcludedPaths(prettyIgnore string) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		text := scanner.Text()
+		if strings.HasPrefix(text, "#") || strings.HasPrefix(text, "/") {
+			continue
+		}
 		excludedPaths = append(excludedPaths, text)
 	}
 
