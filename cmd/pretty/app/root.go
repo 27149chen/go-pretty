@@ -1,23 +1,30 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
 
 	"github.com/27149chen/go-pretty/pkg"
+	"github.com/27149chen/go-pretty/version"
 )
 
 var pretty string
+var printVersion bool
 
 var rootCmd = &cobra.Command{
-	Use:   "pretty PATH",
+	Use:   "pretty [PATH]",
 	Short: "Prettify your project by removing things you do not want to expose",
 	Long: `Prettify your project by removing things you do not want to expose.`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := run(args[0]); err != nil {
+		path := "."
+		if len(args) > 0 {
+			path = args[0]
+		}
+		if err := run(path); err != nil {
 			panic(err)
 		}
 
@@ -30,6 +37,11 @@ func Execute() {
 }
 
 func run(root string) error {
+	if printVersion {
+		fmt.Println(version.Version)
+		return nil
+	}
+
 	err := pkg.PopulateExcludedPaths(pretty)
 	if err != nil {
 		return err
@@ -53,10 +65,7 @@ func init() {
 	// cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVarP(&pretty, "file", "f", pkg.PrettyFile, "Name of the pretty file.")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	// rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "Print version information and quit")
 }
 
 // initConfig reads in config file and ENV variables if set.
