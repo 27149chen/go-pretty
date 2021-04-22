@@ -17,9 +17,12 @@ var (
 	fileTag = fmt.Sprintf("=== File %s. ===", ReservedTag)
 )
 
-var excludedPaths []string
+var excludes []string
+var ignores = []string{".git", "idea"}
 
-func PopulateExcludedPaths(prettyIgnore string) error {
+type prettyFunc func(name string) error
+
+func PopulateExcludes(prettyIgnore string) error {
 	file, err := os.Open(prettyIgnore)
 	if err != nil {
 		return err
@@ -34,15 +37,19 @@ func PopulateExcludedPaths(prettyIgnore string) error {
 		if strings.HasPrefix(text, "#") || strings.HasPrefix(text, "/") {
 			continue
 		}
-		excludedPaths = append(excludedPaths, text)
+		excludes = append(excludes, text)
 	}
 
 	return nil
 }
 
+func Prettify(path string) error {
+	return prettify(path, cleanCode)
+}
+
 func cleanCode(name string) error {
-	for _, p := range excludedPaths {
-		if strings.Contains(name, p) {
+	for _, ex := range excludes {
+		if strings.Contains(name, ex) {
 			return os.Remove(name)
 		}
 	}
@@ -98,17 +105,24 @@ func cleanCode(name string) error {
 	return os.Rename(name+"_tmp", name)
 }
 
-func Prettify(path string) error {
+func prettify(path string, action prettyFunc) error {
 	return filepath.Walk(path,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				panic(err)
 			}
 
-			if !info.Mode().IsRegular() || !strings.HasSuffix(info.Name(), ".go") {
+			if !info.Mode().IsRegular() {
 				return nil
 			}
+
+			for _, ig := range ignores {
+				if strings.Contains(path, ig) {
+					return nil
+				}
+			}
+
 			fmt.Printf("Processing %s\n", path)
-			return cleanCode(path)
+			return action(path)
 		})
 }

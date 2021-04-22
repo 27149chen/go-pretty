@@ -42,7 +42,7 @@ func run(root string) error {
 		return nil
 	}
 
-	err := pkg.PopulateExcludedPaths(pretty)
+	err := pkg.PopulateExcludes(pretty)
 	if err != nil {
 		return err
 	}
@@ -66,6 +66,9 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&pretty, "file", "f", pkg.PrettyFile, "Name of the pretty file.")
 	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "Print version information and quit")
+
+	rootCmd.AddCommand(commentCmd)
+	rootCmd.AddCommand(uncommentCmd)
 }
 
 // initConfig reads in config file and ENV variables if set.
