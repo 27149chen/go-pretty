@@ -34,7 +34,12 @@ func PopulateExcludes(prettyIgnore string) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		text := scanner.Text()
-		if strings.HasPrefix(text, "#") || strings.HasPrefix(text, "/") {
+		text = strings.TrimSpace(text)
+		if text == "" {
+			continue
+		}
+
+		if strings.HasPrefix(text, "#") || strings.HasPrefix(text, "//") {
 			continue
 		}
 		excludes = append(excludes, text)
