@@ -7,11 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/27149chen/go-pretty/pkg"
+	"github.com/27149chen/go-pretty/pkg/config"
+	"github.com/27149chen/go-pretty/pkg/pretty"
 	"github.com/27149chen/go-pretty/version"
 )
 
-var pretty string
+var prettyFile string
 var printVersion bool
 
 var rootCmd = &cobra.Command{
@@ -24,7 +25,7 @@ var rootCmd = &cobra.Command{
 		if len(args) > 0 {
 			path = args[0]
 		}
-		if err := run(path); err != nil {
+		if err := execRootCmd(path); err != nil {
 			panic(err)
 		}
 
@@ -36,35 +37,42 @@ func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
 }
 
-func run(root string) error {
+func execRootCmd(root string) error {
 	if printVersion {
 		fmt.Println(version.Version)
 		return nil
 	}
 
-	err := pkg.PopulateExcludes(pretty)
+	err := pretty.PopulateExcludes(prettyFile)
 	if err != nil {
 		return err
 	}
 
-	err = pkg.Prettify(root)
+	err = pretty.Prettify(root)
 	if err != nil {
 		return err
 	}
 
 	// also remove the prettyIgnore file in current directory
-	dir := filepath.Dir(pretty)
+	dir := filepath.Dir(prettyFile)
 	if dir != root {
 		return nil
 	}
 
-	return os.Remove(pretty)
+	if err := os.Remove(prettyFile); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func init() {
 	// cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&pretty, "file", "f", pkg.PrettyFile, "Name of the pretty file.")
+	rootCmd.PersistentFlags().StringVarP(&prettyFile, "file", "f", config.DefaultPrettyFile, "Name of the pretty file.")
 	rootCmd.Flags().BoolVarP(&printVersion, "version", "v", false, "Print version information and quit")
 
 	rootCmd.AddCommand(commentCmd)

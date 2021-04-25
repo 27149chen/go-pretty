@@ -1,4 +1,4 @@
-package pkg
+package pretty
 
 import (
 	"bufio"
@@ -10,14 +10,14 @@ const prefix = "// "
 const packageLine = "package "
 
 func Comment(path string) error {
-	return prettify(path, commentCode)
+	return fileWalk(path, commentCode)
 }
 
 func Uncomment(path string) error {
-	return prettify(path, uncommentCode)
+	return fileWalk(path, uncommentCode)
 }
 
-func commentCode(name string) error {
+func commentCode(name, tmpDir string) error {
 	for _, ex := range excludes {
 		if strings.Contains(name, ex) {
 			return commentFile(name)
@@ -80,7 +80,7 @@ func commentCode(name string) error {
 	return os.Rename(name+"_tmp", name)
 }
 
-func uncommentCode(name string) error {
+func uncommentCode(name, tmpDir string) error {
 	for _, ex := range excludes {
 		if strings.Contains(name, ex) {
 			return uncommentFile(name)

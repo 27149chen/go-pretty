@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/27149chen/go-pretty/pkg"
+	"github.com/27149chen/go-pretty/pkg/pretty"
 	"github.com/spf13/cobra"
 )
 
@@ -20,10 +20,10 @@ var commentCmd = &cobra.Command{
 }
 
 func execCommentCmd(root string) error {
-	err := pkg.PopulateExcludes(pretty)
+	err := pretty.PopulateExcludes(prettyFile)
 	if err != nil {
 		return err
 	}
 
-	return pkg.Comment(root)
+	return pretty.Comment(root)
 }

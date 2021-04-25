@@ -1,4 +1,4 @@
-package pkg
+package pretty
 
 import (
 	"bufio"
@@ -6,9 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-const PrettyFile = ".prettyfile"
+	"github.com/karrick/godirwalk"
+	"golang.org/x/tools/godoc/util"
+)
 
 var (
 	ReservedTag = "Reserved for enterprise only"
@@ -18,13 +19,16 @@ var (
 )
 
 var excludes []string
-var ignores = []string{".git", "idea"}
+var ignores = []string{".git", "idea", ".DS_Store"}
 
-type prettyFunc func(name string) error
+type prettyFunc func(name, tmpDir string) error
 
 func PopulateExcludes(prettyIgnore string) error {
 	file, err := os.Open(prettyIgnore)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 	defer func() {
@@ -49,10 +53,10 @@ func PopulateExcludes(prettyIgnore string) error {
 }
 
 func Prettify(path string) error {
-	return prettify(path, cleanCode)
+	return fileWalk1(path, cleanCode)
 }
 
-func cleanCode(name string) error {
+func cleanCode(name, tmpDir string) error {
 	for _, ex := range excludes {
 		if strings.Contains(name, ex) {
 			return os.Remove(name)
@@ -67,25 +71,35 @@ func cleanCode(name string) error {
 		_ = file.Close()
 	}()
 
-	tmpFile, err := os.Create(name+"_tmp")
+	tmpFileName := filepath.Join(tmpDir, filepath.Base(name))
+	tmpFile, err := os.Create(tmpFileName)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = tmpFile.Close()
+	}()
 
 	w := bufio.NewWriter(tmpFile)
 
 	scanner := bufio.NewScanner(file)
 	var skipped bool
+	var changed bool
 	for scanner.Scan() {
 		text := scanner.Text()
+		if !util.IsText([]byte(text)) {
+			_ = os.Remove(tmpFileName)
+			return nil
+		}
 		if strings.Contains(text, fileTag) {
-			_ = os.Remove(name+"_tmp")
+			_ = os.Remove(tmpFileName)
 			return os.Remove(name)
 
 		}
 
 		if strings.Contains(text, startTag) {
 			skipped = true
+			changed = true
 		} else if strings.Contains(text, endTag) {
 			skipped = false
 			continue
@@ -102,15 +116,59 @@ func cleanCode(name string) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-
-	if err := os.Remove(name); err != nil {
+	if err := tmpFile.Close(); err != nil {
 		return err
 	}
 
-	return os.Rename(name+"_tmp", name)
+	if changed {
+		if err := os.Remove(name); err != nil {
+			return err
+		}
+
+		return os.Rename(tmpFileName, name)
+	}
+
+	return os.Remove(tmpFileName)
 }
 
-func prettify(path string, action prettyFunc) error {
+func fileWalk1(path string, action prettyFunc) error {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = os.RemoveAll(tmp)
+	}()
+
+	return godirwalk.Walk(path, &godirwalk.Options{
+		Callback: func(name string, de *godirwalk.Dirent) error {
+			for _, ig := range ignores {
+				if strings.Contains(name, ig) {
+					return godirwalk.SkipThis
+				}
+			}
+
+			if !de.IsRegular() {
+				return nil
+			}
+
+			fmt.Printf("Processing %s\n", name)
+			return action(name, tmp)
+		},
+		Unsorted: true, // (optional) set true for faster yet non-deterministic enumeration (see godoc)
+	})
+}
+
+
+func fileWalk(path string, action prettyFunc) error {
+	tmp, err := os.MkdirTemp("", "")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = os.RemoveAll(tmp)
+	}()
+
 	return filepath.Walk(path,
 		func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -128,6 +186,6 @@ func prettify(path string, action prettyFunc) error {
 			}
 
 			fmt.Printf("Processing %s\n", path)
-			return action(path)
+			return action(path, tmp)
 		})
 }
