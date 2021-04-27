@@ -53,7 +53,7 @@ func PopulateExcludes(prettyIgnore string) error {
 }
 
 func Prettify(path string) error {
-	return fileWalk1(path, cleanCode)
+	return fileWalk(path, cleanCode)
 }
 
 func cleanCode(name, tmpDir string) error {
@@ -131,7 +131,7 @@ func cleanCode(name, tmpDir string) error {
 	return os.Remove(tmpFileName)
 }
 
-func fileWalk1(path string, action prettyFunc) error {
+func fileWalk(path string, action prettyFunc) error {
 	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return err
@@ -157,35 +157,4 @@ func fileWalk1(path string, action prettyFunc) error {
 		},
 		Unsorted: true, // (optional) set true for faster yet non-deterministic enumeration (see godoc)
 	})
-}
-
-
-func fileWalk(path string, action prettyFunc) error {
-	tmp, err := os.MkdirTemp("", "")
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = os.RemoveAll(tmp)
-	}()
-
-	return filepath.Walk(path,
-		func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				panic(err)
-			}
-
-			if !info.Mode().IsRegular() {
-				return nil
-			}
-
-			for _, ig := range ignores {
-				if strings.Contains(path, ig) {
-					return nil
-				}
-			}
-
-			fmt.Printf("Processing %s\n", path)
-			return action(path, tmp)
-		})
 }

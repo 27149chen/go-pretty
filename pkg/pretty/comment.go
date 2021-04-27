@@ -2,12 +2,17 @@ package pretty
 
 import (
 	"bufio"
+	"github.com/27149chen/go-pretty/pkg/util/sets"
+	"golang.org/x/tools/godoc/util"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 const prefix = "// "
 const packageLine = "package "
+
+var supportedExtensions = sets.NewString(".go")
 
 func Comment(path string) error {
 	return fileWalk(path, commentCode)
@@ -18,72 +23,30 @@ func Uncomment(path string) error {
 }
 
 func commentCode(name, tmpDir string) error {
-	for _, ex := range excludes {
-		if strings.Contains(name, ex) {
-			return commentFile(name)
-		}
-	}
-
-	file, err := os.Open(name)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = file.Close()
-	}()
-
-	tmpFile, err := os.Create(name+"_tmp")
-	if err != nil {
-		return err
-	}
-
-	w := bufio.NewWriter(tmpFile)
-
-	scanner := bufio.NewScanner(file)
-	var commented bool
-	var tagLine bool
-	for scanner.Scan() {
-		text := scanner.Text()
-		if strings.Contains(text, fileTag) {
-			_ = os.Remove(name+"_tmp")
-			return commentFile(name)
-
-		}
-
-		if strings.Contains(text, startTag) {
-			commented = true
-			tagLine = true
-		} else if strings.Contains(text, endTag) {
-			commented = false
-			tagLine = true
-		} else {
-			tagLine = false
-		}
-
-		if commented && !tagLine {
-			text = prefix + text
-		}
-		_, err := w.WriteString(text + "\n")
-		if err != nil {
-			return err
-		}
-	}
-
-	if err := w.Flush(); err != nil {
-		return err
-	}
-
-	if err := os.Remove(name); err != nil {
-		return err
-	}
-
-	return os.Rename(name+"_tmp", name)
+	return commentOrUncommentCode(name, tmpDir, true)
 }
 
 func uncommentCode(name, tmpDir string) error {
+	return commentOrUncommentCode(name, tmpDir, false)
+}
+
+//func commentFile(name, tmpDir string) error {
+//	return commentOrUncommentFile(name, tmpDir, true)
+//}
+//
+//func uncommentFile(name, tmpDir string) error {
+//	return commentOrUncommentFile(name, tmpDir, false)
+//}
+
+func commentOrUncommentCode(name, tmpDir string, comment bool) error {
+	ext := filepath.Ext(name)
+	if !supportedExtensions.Has(ext) {
+		return nil
+	}
+
 	for _, ex := range excludes {
 		if strings.Contains(name, ex) {
-			return uncommentFile(name)
+			return commentOrUncommentFile(name, tmpDir, comment)
 		}
 	}
 
@@ -95,27 +58,36 @@ func uncommentCode(name, tmpDir string) error {
 		_ = file.Close()
 	}()
 
-	tmpFile, err := os.Create(name+"_tmp")
+	tmpFileName := filepath.Join(tmpDir, filepath.Base(name))
+	tmpFile, err := os.Create(tmpFileName)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = tmpFile.Close()
+	}()
 
 	w := bufio.NewWriter(tmpFile)
 
 	scanner := bufio.NewScanner(file)
 	var commented bool
 	var tagLine bool
+	var changed bool
 	for scanner.Scan() {
 		text := scanner.Text()
+		if !util.IsText([]byte(text)) {
+			_ = os.Remove(tmpFileName)
+			return nil
+		}
 		if strings.Contains(text, fileTag) {
-			_ = os.Remove(name+"_tmp")
-			return uncommentFile(name)
-
+			_ = os.Remove(tmpFileName)
+			return commentOrUncommentFile(name, tmpDir, comment)
 		}
 
 		if strings.Contains(text, startTag) {
 			commented = true
 			tagLine = true
+			changed = true
 		} else if strings.Contains(text, endTag) {
 			commented = false
 			tagLine = true
@@ -124,7 +96,12 @@ func uncommentCode(name, tmpDir string) error {
 		}
 
 		if commented && !tagLine {
-			text = strings.Replace(text, prefix, "", 1)
+			if comment {
+				text = prefix + text
+			} else {
+				text = strings.Replace(text, prefix, "", 1)
+			}
+
 		}
 		_, err := w.WriteString(text + "\n")
 		if err != nil {
@@ -135,15 +112,22 @@ func uncommentCode(name, tmpDir string) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-
-	if err := os.Remove(name); err != nil {
+	if err := tmpFile.Close(); err != nil {
 		return err
 	}
 
-	return os.Rename(name+"_tmp", name)
+	if changed {
+		if err := os.Remove(name); err != nil {
+			return err
+		}
+
+		return os.Rename(tmpFileName, name)
+	}
+
+	return os.Remove(tmpFileName)
 }
 
-func commentFile(name string) error {
+func commentOrUncommentFile(name, tmpDir string, comment bool) error {
 	file, err := os.Open(name)
 	if err != nil {
 		return err
@@ -152,58 +136,14 @@ func commentFile(name string) error {
 		_ = file.Close()
 	}()
 
-	tmpFile, err := os.Create(name+"_tmp")
-	if err != nil {
-		return err
-	}
-
-	w := bufio.NewWriter(tmpFile)
-
-	scanner := bufio.NewScanner(file)
-	var commented bool
-	for scanner.Scan() {
-		text := scanner.Text()
-		if !strings.HasPrefix(text, packageLine) {
-			commented = true
-		} else {
-			commented = false
-		}
-
-
-		if commented {
-			text = prefix + text
-		}
-		_, err := w.WriteString(text + "\n")
-		if err != nil {
-			return err
-		}
-
-	}
-
-	if err := w.Flush(); err != nil {
-		return err
-	}
-
-	if err := os.Remove(name); err != nil {
-		return err
-	}
-
-	return os.Rename(name+"_tmp", name)
-}
-
-func uncommentFile(name string) error {
-	file, err := os.Open(name)
+	tmpFileName := filepath.Join(tmpDir, filepath.Base(name))
+	tmpFile, err := os.Create(tmpFileName)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		_ = file.Close()
+		_ = tmpFile.Close()
 	}()
-
-	tmpFile, err := os.Create(name+"_tmp")
-	if err != nil {
-		return err
-	}
 
 	w := bufio.NewWriter(tmpFile)
 
@@ -211,15 +151,22 @@ func uncommentFile(name string) error {
 	var commented bool
 	for scanner.Scan() {
 		text := scanner.Text()
+		if !util.IsText([]byte(text)) {
+			_ = os.Remove(tmpFileName)
+			return nil
+		}
 		if !strings.HasPrefix(text, packageLine) {
 			commented = true
 		} else {
 			commented = false
 		}
 
-
 		if commented {
-			text = strings.Replace(text, prefix, "", 1)
+			if comment {
+				text = prefix + text
+			} else {
+				text = strings.Replace(text, prefix, "", 1)
+			}
 		}
 		_, err := w.WriteString(text + "\n")
 		if err != nil {
@@ -231,10 +178,13 @@ func uncommentFile(name string) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
 
 	if err := os.Remove(name); err != nil {
 		return err
 	}
 
-	return os.Rename(name+"_tmp", name)
+	return os.Rename(tmpFileName, name)
 }

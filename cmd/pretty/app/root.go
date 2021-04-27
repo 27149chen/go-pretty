@@ -55,18 +55,16 @@ func execRootCmd(root string) error {
 
 	// also remove the prettyIgnore file in current directory
 	dir := filepath.Dir(prettyFile)
-	if dir != root {
-		return nil
-	}
-
-	if err := os.Remove(prettyFile); err != nil {
-		if os.IsNotExist(err) {
-			return nil
+	if dir == root {
+		if err := os.Remove(prettyFile); err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
 		}
-		return err
 	}
-
-	return nil
+	
+	return pretty.RemoveEmptyDir(root)
 }
 
 func init() {
