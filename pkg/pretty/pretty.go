@@ -19,7 +19,7 @@ var (
 )
 
 var excludes []string
-var ignores = []string{".git", "idea", ".DS_Store"}
+var ignores = []string{".git/", ".idea/", ".DS_Store"}
 
 type prettyFunc func(name, tmpDir string) error
 
