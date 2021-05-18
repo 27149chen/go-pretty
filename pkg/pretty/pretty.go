@@ -13,9 +13,9 @@ import (
 
 var (
 	ReservedTag = "Reserved for enterprise only"
-	startTag = fmt.Sprintf("=== Code %s. START ===", ReservedTag)
-	endTag = fmt.Sprintf("=== Code %s. END ===", ReservedTag)
-	fileTag = fmt.Sprintf("=== File %s. ===", ReservedTag)
+	startTag    = fmt.Sprintf("=== Code %s. START ===", ReservedTag)
+	endTag      = fmt.Sprintf("=== Code %s. END ===", ReservedTag)
+	fileTag     = fmt.Sprintf("=== File %s. ===", ReservedTag)
 )
 
 var excludes []string

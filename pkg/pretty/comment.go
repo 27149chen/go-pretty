@@ -2,11 +2,13 @@ package pretty
 
 import (
 	"bufio"
-	"github.com/27149chen/go-pretty/pkg/util/sets"
-	"golang.org/x/tools/godoc/util"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/tools/godoc/util"
+
+	"github.com/27149chen/go-pretty/pkg/util/sets"
 )
 
 const prefix = "// "

@@ -1,28 +1,46 @@
 package pretty
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 )
 
 func RemoveEmptyDir(root string) error {
-	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	_, err := removeEmptyDir(root)
+
+	return err
+}
+
+func removeEmptyDir(root string) (bool, error) {
+	files, err := os.ReadDir(root)
+	if err != nil {
+		return false, err
+	}
+
+	if len(files) == 0 {
+		fmt.Printf("Removing empty dir: %s\n", root)
+		return true, os.Remove(root)
+	}
+
+	deletedDirs := 0
+	for _, file := range files {
+		if !file.IsDir() {
+			continue
+		}
+		deleted, err := removeEmptyDir(filepath.Join(root, file.Name()))
 		if err != nil {
-			return err
+			return false, err
 		}
-		if !info.IsDir() {
-			return nil
+		if deleted {
+			deletedDirs += 1
 		}
+	}
 
-		files, err := os.ReadDir(path)
-		if err != nil {
-			return err
-		}
+	if deletedDirs == len(files) {
+		fmt.Printf("Removing empty dir: %s\n", root)
+		return true, os.Remove(root)
+	}
 
-		if len(files) != 0 {
-			return nil
-		}
-
-		return os.Remove(path)
-	})
+	return false, nil
 }

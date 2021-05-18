@@ -10,7 +10,7 @@ import (
 
 const (
 	start1 = "// === start ==="
-	end1 = "// === end ==="
+	end1   = "// === end ==="
 )
 
 func cleanCode1(name string) error {
@@ -22,7 +22,7 @@ func cleanCode1(name string) error {
 		_ = file.Close()
 	}()
 
-	tmpFile, err := os.Create(name+"_tmp")
+	tmpFile, err := os.Create(name + "_tmp")
 	if err != nil {
 		return err
 	}

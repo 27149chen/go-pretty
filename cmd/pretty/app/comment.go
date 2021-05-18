@@ -9,7 +9,7 @@ var commentCmd = &cobra.Command{
 	Use:   "comment [PATH]",
 	Short: "comment codes you do not want to expose",
 	Long:  `comment codes you do not want to expose instead of removing them`,
-	Args: cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := execCommentCmd(args[0]); err != nil {
 			panic(err)

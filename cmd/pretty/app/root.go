@@ -18,8 +18,8 @@ var printVersion bool
 var rootCmd = &cobra.Command{
 	Use:   "pretty [PATH]",
 	Short: "Prettify your project by removing things you do not want to expose",
-	Long: `Prettify your project by removing things you do not want to expose.`,
-	Args: cobra.RangeArgs(0, 1),
+	Long:  `Prettify your project by removing things you do not want to expose.`,
+	Args:  cobra.RangeArgs(0, 1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path := "."
 		if len(args) > 0 {
@@ -63,7 +63,7 @@ func execRootCmd(root string) error {
 			return err
 		}
 	}
-	
+
 	return pretty.RemoveEmptyDir(root)
 }
 
